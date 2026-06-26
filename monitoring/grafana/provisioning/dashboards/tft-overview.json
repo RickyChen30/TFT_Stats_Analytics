@@ -1,0 +1,60 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "schemaVersion": 39,
+  "title": "TFT Analytics Overview",
+  "tags": ["tft"],
+  "time": { "from": "now-30m", "to": "now" },
+  "refresh": "10s",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Matches ingested (rate/s)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [{ "expr": "rate(ingestion_matches_published_total[1m])", "legendFormat": "ingested/s" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Matches processed (rate/s)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [{ "expr": "rate(processor_matches_processed_total[1m])", "legendFormat": "processed/s" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Broker messages per partition",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [{ "expr": "broker_messages_total", "legendFormat": "{{node}}" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Metastore memtable entries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [{ "expr": "metastore_memtable_entries", "legendFormat": "{{node}}" }]
+    },
+    {
+      "type": "stat",
+      "title": "Stat entries written (total)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 16 },
+      "targets": [{ "expr": "sum(processor_entries_written_total)" }]
+    },
+    {
+      "type": "stat",
+      "title": "Anomalies published (total)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 16 },
+      "targets": [{ "expr": "sum(anomaly_anomalies_published_total)" }]
+    },
+    {
+      "type": "stat",
+      "title": "Reorder buffer size",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 16 },
+      "targets": [{ "expr": "processor_reorder_buffer_size" }]
+    }
+  ]
+}

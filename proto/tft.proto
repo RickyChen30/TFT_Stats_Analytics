@@ -1,0 +1,103 @@
+syntax = "proto3";
+package tft;
+
+option go_package = "github.com/tft-analytics/proto;tftpb";
+
+message MatchEvent {
+  string match_id = 1;
+  string region = 2;
+  string patch = 3;
+  string tier = 4;
+  repeated PlayerResult players = 5;
+  VectorClock clock = 6;
+  int64 timestamp = 7;
+}
+
+message PlayerResult {
+  string puuid = 1;
+  int32 placement = 2;
+  repeated Unit units = 3;
+  repeated string augments = 4;
+  int32 rounds_played = 5;
+}
+
+message Unit {
+  string character_id = 1;
+  int32 tier = 2;
+  repeated string items = 3;
+}
+
+message VectorClock {
+  map<string, int64> clocks = 1;
+}
+
+message StatEntry {
+  string entity_id = 1;
+  string entity_type = 2; // "champion", "item", "augment", "composition"
+  string patch = 3;
+  string region = 4;
+  string tier = 5;
+  double win_rate = 6;
+  double avg_placement = 7;
+  double play_rate = 8;
+  int64 sample_size = 9;
+  VectorClock clock = 10;
+}
+
+message WriteRequest { StatEntry entry = 1; }
+message WriteResponse { bool success = 1; }
+
+message ReadRequest {
+  string entity_id = 1;
+  string patch = 2;
+  string tier = 3;
+  string region = 4;
+}
+message ReadResponse {
+  StatEntry entry = 1;
+  bool found = 2;
+}
+
+// Scan returns all entries matching a prefix filter. Empty filter fields match all.
+message ScanRequest {
+  string entity_type = 1;
+  string patch = 2;
+  string tier = 3;
+  string region = 4;
+  int64 limit = 5;
+}
+message ScanResponse { repeated StatEntry entries = 1; }
+
+service MetaStore {
+  rpc Write(WriteRequest) returns (WriteResponse);
+  rpc Read(ReadRequest) returns (ReadResponse);
+  rpc Scan(ScanRequest) returns (ScanResponse);
+}
+
+message PublishRequest {
+  string topic = 1;
+  bytes payload = 2;
+  string region = 3;
+  string tier = 4;
+}
+message PublishResponse {
+  bool success = 1;
+  int64 offset = 2;
+}
+
+message SubscribeRequest {
+  string topic = 1;
+  string consumer_group = 2;
+  int64 offset = 3;
+  string region = 4;
+  string tier = 5;
+}
+message SubscribeResponse {
+  bytes payload = 1;
+  int64 offset = 2;
+}
+
+service Broker {
+  rpc Publish(PublishRequest) returns (PublishResponse);
+  rpc Subscribe(SubscribeRequest) returns (stream SubscribeResponse);
+}

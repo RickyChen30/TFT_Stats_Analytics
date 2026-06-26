@@ -1,0 +1,191 @@
+name: tft-analytics
+
+# Reusable build blocks. Go and Python services build from the repo root so they
+# can share the Go module / the common+gen Python packages respectively.
+x-broker-build: &broker-build
+  context: .
+  dockerfile: broker/Dockerfile
+x-metastore-build: &metastore-build
+  context: .
+  dockerfile: metastore/Dockerfile
+
+services:
+  # ---------------- Broker cluster (3 nodes) ----------------
+  broker-1:
+    build: *broker-build
+    environment:
+      NODE_ID: broker-1
+      SELF: broker-1:50051
+      PEERS: broker-2:50051,broker-3:50051
+      GRPC_PORT: "50051"
+      METRICS_PORT: "9101"
+      MAX_RECORDS_PER_PARTITION: "${BROKER_MAX_RECORDS:-10000}"
+      DATA_DIR: /data
+    ports: ["50051:50051"]
+    volumes: ["broker1-data:/data"]
+
+  broker-2:
+    build: *broker-build
+    environment:
+      NODE_ID: broker-2
+      SELF: broker-2:50051
+      PEERS: broker-1:50051,broker-3:50051
+      GRPC_PORT: "50051"
+      METRICS_PORT: "9101"
+      MAX_RECORDS_PER_PARTITION: "${BROKER_MAX_RECORDS:-10000}"
+      DATA_DIR: /data
+    volumes: ["broker2-data:/data"]
+
+  broker-3:
+    build: *broker-build
+    environment:
+      NODE_ID: broker-3
+      SELF: broker-3:50051
+      PEERS: broker-1:50051,broker-2:50051
+      GRPC_PORT: "50051"
+      METRICS_PORT: "9101"
+      MAX_RECORDS_PER_PARTITION: "${BROKER_MAX_RECORDS:-10000}"
+      DATA_DIR: /data
+    volumes: ["broker3-data:/data"]
+
+  # ---------------- Meta store cluster (3 nodes) ----------------
+  metastore-1:
+    build: *metastore-build
+    environment:
+      NODE_ID: metastore-1
+      SELF: metastore-1:50052
+      PEERS: metastore-2:50052,metastore-3:50052
+      GRPC_PORT: "50052"
+      METRICS_PORT: "9102"
+      BROKER_ADDR: broker-1:50051
+      DATA_DIR: /data
+    ports: ["50052:50052"]
+    volumes: ["metastore1-data:/data"]
+    depends_on: [broker-1]
+
+  metastore-2:
+    build: *metastore-build
+    environment:
+      NODE_ID: metastore-2
+      SELF: metastore-2:50052
+      PEERS: metastore-1:50052,metastore-3:50052
+      GRPC_PORT: "50052"
+      METRICS_PORT: "9102"
+      BROKER_ADDR: broker-1:50051
+      DATA_DIR: /data
+    volumes: ["metastore2-data:/data"]
+    depends_on: [broker-1]
+
+  metastore-3:
+    build: *metastore-build
+    environment:
+      NODE_ID: metastore-3
+      SELF: metastore-3:50052
+      PEERS: metastore-1:50052,metastore-2:50052
+      GRPC_PORT: "50052"
+      METRICS_PORT: "9102"
+      BROKER_ADDR: broker-1:50051
+      DATA_DIR: /data
+    volumes: ["metastore3-data:/data"]
+    depends_on: [broker-1]
+
+  # ---------------- Python services ----------------
+  ingestion:
+    build:
+      context: .
+      dockerfile: ingestion/Dockerfile
+    environment:
+      NODE_ID: ingest-1
+      BROKER_ADDR: broker-1:50051
+      RIOT_API_KEY: ${RIOT_API_KEY:-synthetic}
+      REGIONS: ${REGIONS:-NA,EUW}
+      TIERS: ${TIERS:-IRON,GOLD,PLATINUM,DIAMOND,MASTER,CHALLENGER}
+      # Set 17 patches to spread synthetic data across (oldest -> newest).
+      PATCHES: ${PATCHES:-16.9,16.10,16.11}
+      MATCHES_PER_TASK: "40"
+      METRICS_PORT: "9103"
+    depends_on: [broker-1]
+
+  processor:
+    build:
+      context: .
+      dockerfile: processor/Dockerfile
+    environment:
+      NODE_ID: processor-1
+      BROKER_ADDR: broker-1:50051
+      METASTORE_ADDR: metastore-1:50052
+      REGIONS: ${REGIONS:-NA,EUW}
+      TIERS: ${TIERS:-IRON,GOLD,PLATINUM,DIAMOND,MASTER,CHALLENGER}
+      FLUSH_INTERVAL_SECS: "60"
+      METRICS_PORT: "9104"
+      DATA_DIR: /data
+    volumes: ["processor-data:/data"]
+    depends_on: [broker-1, metastore-1]
+
+  anomaly:
+    build:
+      context: .
+      dockerfile: anomaly/Dockerfile
+    environment:
+      NODE_ID: anomaly-1
+      METASTORE_ADDR: metastore-1:50052
+      BROKER_ADDR: broker-1:50051
+      CHECK_INTERVAL_SECS: "600"
+      METRICS_PORT: "9105"
+    depends_on: [metastore-1, broker-1]
+
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    environment:
+      METASTORE_ADDR: metastore-1:50052
+      BROKER_ADDR: broker-1:50051
+      RIOT_API_KEY: ${RIOT_API_KEY:-synthetic}
+      API_PORT: "8000"
+      DATA_DIR: /data
+    ports: ["8000:8000"]
+    volumes: ["api-data:/data"]
+    depends_on: [metastore-1, broker-1]
+
+  dashboard:
+    build:
+      context: ./dashboard
+      args:
+        VITE_API_BASE: ${VITE_API_BASE:-http://localhost:8000}
+    # Host 8080 (avoids the decentralized_project dev server on 3000).
+    ports: ["8080:3000"]
+    depends_on: [api]
+
+  # ---------------- Monitoring ----------------
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports: ["9090:9090"]
+
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      # Admin password must be supplied via .env (no weak default). Anonymous
+      # access is read-only Viewer, never Admin, and sign-up is disabled.
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD in .env}
+      GF_AUTH_ANONYMOUS_ENABLED: "${GRAFANA_ANON_ENABLED:-true}"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SECURITY_COOKIE_SECURE: "true"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    # Host 8082 (avoids the decentralized_project port 3002); container is 3000.
+    ports: ["8082:3000"]
+    depends_on: [prometheus]
+
+volumes:
+  broker1-data:
+  broker2-data:
+  broker3-data:
+  metastore1-data:
+  metastore2-data:
+  metastore3-data:
+  processor-data:
+  api-data:

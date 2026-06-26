@@ -1,0 +1,34 @@
+# ---- Secrets / env (NEVER commit) ----
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+secrets.*
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# ---- Node / dashboard ----
+node_modules/
+dashboard/node_modules/
+dashboard/dist/
+npm-debug.log*
+
+# ---- Go / generated ----
+bin/
+gen/
+proto/*.pb.go
+proto/*_grpc.pb.go
+
+# ---- Editor / OS ----
+.DS_Store
+.idea/
+*.swp
+.claude/settings.local.json

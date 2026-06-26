@@ -1,0 +1,33 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: brokers
+    static_configs:
+      - targets: ["broker-1:9101", "broker-2:9101", "broker-3:9101"]
+
+  - job_name: metastores
+    static_configs:
+      - targets: ["metastore-1:9102", "metastore-2:9102", "metastore-3:9102"]
+
+  - job_name: ingestion
+    static_configs:
+      - targets: ["ingestion:9103"]
+
+  - job_name: processor
+    static_configs:
+      - targets: ["processor:9104"]
+
+  - job_name: anomaly
+    static_configs:
+      - targets: ["anomaly:9105"]
+
+  - job_name: api
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["api:8000"]
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
