@@ -42,7 +42,7 @@ MAX_PARAM_LEN = _int_env("MAX_PARAM_LEN", 120)          # any single query/path 
 RATE_PER_MIN = _int_env("RATE_LIMIT_PER_MIN", 120)       # all endpoints, per IP / 60s
 PLAYER_RATE_PER_MIN = _int_env("PLAYER_RATE_PER_MIN", 12)  # Riot-backed lookups, per IP / 60s
 RIOT_DAILY_CAP = _int_env("RIOT_DAILY_CAP", 20000)       # global guard on the Riot key budget
-MAX_LIMIT = _int_env("MAX_LIMIT", 500)                   # cap on list `limit`
+MAX_LIMIT = _int_env("MAX_LIMIT", 1000)                  # cap on list `limit` (covers the full augment catalog)
 MAX_MATCH_COUNT = _int_env("MAX_MATCH_COUNT", 20)        # cap on match `count`
 
 # Riot-backed paths get the stricter per-IP bucket + the daily cap.

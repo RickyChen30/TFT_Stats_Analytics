@@ -29,7 +29,7 @@ export default function TierList() {
   const { data: heatmap } = useFetch(() => api.heatmap({}), []);
   // Augments (for the special "X" tier of champion / hero augments).
   const { data: augData } = useFetch(
-    () => api.augments({ ...filters, limit: 600 }), [filters.tier, filters.region, filters.patch]);
+    () => api.augments({ ...filters, limit: 1000 }), [filters.tier, filters.region, filters.patch]);
 
   const ctx = useMemo(() => guideContext(roster, heatmap), [roster, heatmap]);
 

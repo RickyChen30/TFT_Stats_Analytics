@@ -41,8 +41,8 @@ export default function EntityAnalysis({
   const [augmentTier, setAugmentTier] = useState("all");
   const [selected, setSelected] = useState(null);
 
-  // High limit so every entity is shown (Set 17 has ~270 augments).
-  const loader = () => LOADERS[entityType]({ ...filters, category: augmentCategory, limit: 500 });
+  // High limit so every entity is shown (the augment catalog is ~500 entries).
+  const loader = () => LOADERS[entityType]({ ...filters, category: augmentCategory, limit: 1000 });
   const { data, loading, error } = useFetch(
     loader,
     [entityType, augmentCategory, filters.tier, filters.region, filters.patch],
