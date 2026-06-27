@@ -72,9 +72,9 @@ export default function TierList() {
     if (type === "composition" && row._archetype) {
       const t = ctx.traitByName[row._trait];
       const champs = (ctx.champsByTrait[row._trait] || []).slice()
-        .sort((a, b) => b.cost - a.cost || a.id.localeCompare(b.id)).slice(0, 4);
+        .sort((a, b) => b.cost - a.cost || a.id.localeCompare(b.id)).slice(0, 7);
       return (
-        <div className="comp-card arch" key={row.entity_id} onClick={() => setSelected({ row, type })}>
+        <div className="comp-card grouped arch" key={row.entity_id} onClick={() => setSelected({ row, type })}>
           <div className="comp-hexes">
             {champs.map((c) => (
               <div className="mini-hex" key={c.id} style={{ "--cost": COST_COLORS[c.cost] || "#9aa3b2" }} title={prettyName(c.id)}>
@@ -95,9 +95,9 @@ export default function TierList() {
       );
     }
     if (type === "composition") {
-      const champs = compChamps(row.entity_id).slice(0, 4);
+      const champs = compChamps(row.entity_id).slice(0, 7);
       return (
-        <div className="comp-card" key={row.entity_id} onClick={() => setSelected({ row, type })}>
+        <div className="comp-card grouped" key={row.entity_id} onClick={() => setSelected({ row, type })}>
           <div className="comp-hexes">
             {champs.map((c) => (
               <div className="mini-hex" key={c.id} style={{ "--cost": COST_COLORS[c.cost] || "#9aa3b2" }} title={prettyName(c.id)}>
