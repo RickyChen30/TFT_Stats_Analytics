@@ -116,13 +116,21 @@ def _client_ip(request: Request) -> str:
 
 
 async def rate_limit_middleware(request: Request, call_next):
-    """Per-IP rate limiting + global Riot-budget cap, applied before routing."""
+    """Per-IP rate limiting + global Riot-budget cap, applied before routing.
+
+    Each limit is independently disabled by setting it to 0 (or below): the global
+    per-IP limit via RATE_LIMIT_PER_MIN, the player-endpoint limit via
+    PLAYER_RATE_PER_MIN, and the daily Riot-budget cap via RIOT_DAILY_CAP. Input
+    validation and the security headers below always apply.
+    """
     path = request.url.path
     ip = _client_ip(request)
     is_riot = any(path.startswith(p) for p in _RIOT_PATHS)
 
-    ok, retry = _global_rl.allow(f"g:{ip}", RATE_PER_MIN)
-    if ok and is_riot:
+    ok, retry = True, 0
+    if RATE_PER_MIN > 0:
+        ok, retry = _global_rl.allow(f"g:{ip}", RATE_PER_MIN)
+    if ok and is_riot and PLAYER_RATE_PER_MIN > 0:
         ok, retry = _player_rl.allow(f"p:{ip}", PLAYER_RATE_PER_MIN)
     if not ok:
         return JSONResponse(
@@ -132,7 +140,7 @@ async def rate_limit_middleware(request: Request, call_next):
         )
 
     # The player lookup actually spends Riot quota; guard the shared budget.
-    if path.startswith("/player/") and not _riot_daily.allow():
+    if path.startswith("/player/") and RIOT_DAILY_CAP > 0 and not _riot_daily.allow():
         return JSONResponse(
             {"status": "unavailable",
              "message": "Daily player-lookup capacity reached. Try again tomorrow."},

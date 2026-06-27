@@ -19,8 +19,18 @@ from .service import Service
 
 app = FastAPI(title="TFT Distributed Meta Analytics", version="1.0.0")
 
-# CORS: read-only API, so only GET is ever needed. Origins are restricted to the
-# dashboard (override via ALLOWED_ORIGINS="https://a.com,https://b.com").
+# Middleware registration order matters: Starlette applies the LAST-added
+# middleware as the OUTERMOST layer. We register the rate limiter first and CORS
+# last so CORS wraps everything — otherwise a rate-limited (429) or capped (503)
+# response returned early by the rate limiter would skip CORSMiddleware and reach
+# the browser without an Access-Control-Allow-Origin header, which the browser
+# rejects as an opaque "Failed to fetch" instead of a clean error the UI can show.
+
+# Per-IP rate limiting, global Riot-budget cap, and security headers (inner).
+app.middleware("http")(sec.rate_limit_middleware)
+
+# CORS (outermost): read-only API, so only GET is ever needed. Origins are
+# restricted to the dashboard (override via ALLOWED_ORIGINS="https://a.com,...").
 _origins = [o.strip() for o in os.environ.get(
     "ALLOWED_ORIGINS",
     "http://localhost:8080,http://localhost:3000,http://localhost:5173",
@@ -31,9 +41,6 @@ app.add_middleware(
     allow_methods=["GET"],
     allow_headers=["X-Riot-Key", "Content-Type"],
 )
-
-# Per-IP rate limiting, global Riot-budget cap, and security headers.
-app.middleware("http")(sec.rate_limit_middleware)
 
 svc = Service()
 

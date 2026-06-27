@@ -89,10 +89,12 @@ export default function EntityAnalysis({
     );
     if (entityType === "champion") {
       const c = ctx.champById[row.entity_id];
+      const traitIcon = ctx.traitByName[(c?.traits || [])[0]]?.icon;
       return (
         <div className="comp-card champ" key={row.entity_id} onClick={() => setSelected(row)}>
           <div className="mini-hex big" style={{ "--cost": COST_COLORS[c?.cost] || "#9aa3b2" }}>
             {c?.icon ? <img src={c.icon} alt="" draggable={false} /> : <span>{prettyName(row.entity_id).slice(0, 2)}</span>}
+            {traitIcon && <img className="hex-trait-badge" src={traitIcon} alt="" draggable={false} />}
           </div>
           <div className="comp-card-title">{prettyName(row.entity_id)}</div>
           {stats}
@@ -161,7 +163,7 @@ export default function EntityAnalysis({
               </div>
               <div className="tier-cards">
                 {byTier[t.id].length === 0
-                  ? <div className="tier-empty">—</div>
+                  ? <div className="tier-empty">No {t.id} tier {entityType}s this patch.</div>
                   : byTier[t.id].map(renderCard)}
               </div>
             </div>

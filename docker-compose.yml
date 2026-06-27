@@ -101,7 +101,7 @@ services:
       REGIONS: ${REGIONS:-NA,EUW}
       TIERS: ${TIERS:-IRON,GOLD,PLATINUM,DIAMOND,MASTER,CHALLENGER}
       # Set 17 patches to spread synthetic data across (oldest -> newest).
-      PATCHES: ${PATCHES:-16.9,16.10,16.11}
+      PATCHES: ${PATCHES:-17.1,17.2,17.3}
       MATCHES_PER_TASK: "40"
       METRICS_PORT: "9103"
     depends_on: [broker-1]
@@ -144,6 +144,12 @@ services:
       RIOT_API_KEY: ${RIOT_API_KEY:-synthetic}
       API_PORT: "8000"
       DATA_DIR: /data
+      # Rate limits are disabled (0 = off). Input validation and security headers
+      # still apply. Set any of these to a positive number to re-enable that limit.
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:8080}
+      RATE_LIMIT_PER_MIN: ${RATE_LIMIT_PER_MIN:-0}
+      PLAYER_RATE_PER_MIN: ${PLAYER_RATE_PER_MIN:-0}
+      RIOT_DAILY_CAP: ${RIOT_DAILY_CAP:-0}
     ports: ["8000:8000"]
     volumes: ["api-data:/data"]
     depends_on: [metastore-1, broker-1]
