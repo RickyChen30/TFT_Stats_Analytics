@@ -136,7 +136,9 @@ function unitLine(c) {
 // frontline tanks on the front row, centered. Recommended items go on the main
 // carry and the main tank (best items per unit from the champion×item heatmap).
 function buildCompBoard(units, carryId, ctx) {
-  const COLS = 7, BACK_ROW = 0, FRONT_ROW = 2;
+  // Top row faces the enemy, so tanks go on the top row and carries on the
+  // bottom (last) row.
+  const COLS = 7, FRONT_ROW = 0, BACK_ROW = 3;
   const back = [], front = [];
   units.forEach((c) => (unitLine(c) === "back" ? back : front).push(c));
   back.sort((a, b) => b.cost - a.cost);
@@ -151,14 +153,25 @@ function buildCompBoard(units, carryId, ctx) {
   const itemsFor = (id) =>
     id === carry ? carryItems : (tank && id === tank.id ? tankItems : []);
 
-  const place = (arr, row) => {
+  const mkUnit = (c, row, col) => ({
+    id: c.id, name: prettyName(c.id), icon: c.icon, cost: c.cost,
+    carry: c.id === carry, row, col, items: itemsFor(c.id),
+  });
+  // Tanks: centered on the front row.
+  const placeCentered = (arr, row) => {
     const start = Math.max(0, Math.floor((COLS - arr.length) / 2));
-    return arr.slice(0, COLS).map((c, i) => ({
-      id: c.id, name: prettyName(c.id), icon: c.icon, cost: c.cost,
-      carry: c.id === carry, row, col: start + i, items: itemsFor(c.id),
-    }));
+    return arr.slice(0, COLS).map((c, i) => mkUnit(c, row, start + i));
   };
-  return { rows: 4, cols: COLS, placed: [...place(back, BACK_ROW), ...place(front, FRONT_ROW)] };
+  // Carries: pushed to the corners — 1-2 sit in the back corners, 3+ are spaced
+  // out equally across the back row (protected, spread to dodge AoE).
+  const placeCorners = (arr, row) => {
+    const a = arr.slice(0, COLS);
+    const n = a.length;
+    const cols = n === 0 ? [] : n === 1 ? [0]
+      : a.map((_, i) => Math.round((i * (COLS - 1)) / (n - 1)));
+    return a.map((c, i) => mkUnit(c, row, cols[i]));
+  };
+  return { rows: 4, cols: COLS, placed: [...placeCentered(front, FRONT_ROW), ...placeCorners(back, BACK_ROW)] };
 }
 
 // The board for a champion (e.g. behind a champion augment): reuse the champion's

@@ -70,7 +70,6 @@ function CompBoard({ board }) {
   const at = (r, c) => placed.find((p) => p.row === r && p.col === c);
   return (
     <div className="g-board">
-      <span className="g-board-line back">backline · carries</span>
       <div className="g-board-grid">
         {Array.from({ length: rows }).map((_, r) => (
           <div className={`g-board-row ${r % 2 ? "offset" : ""}`} key={r}>
@@ -95,7 +94,6 @@ function CompBoard({ board }) {
           </div>
         ))}
       </div>
-      <span className="g-board-line front">frontline · tanks</span>
     </div>
   );
 }
