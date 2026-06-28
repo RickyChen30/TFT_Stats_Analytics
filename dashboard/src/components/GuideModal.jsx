@@ -149,10 +149,13 @@ export default function GuideModal({ type, row, guide, onClose }) {
               <div className="guide-section-head">Traits</div>
               <div className="guide-traits">
                 {guide.traits.map((t) => (
-                  <div className="g-trait" key={t.name}>
+                  <div className="g-trait" key={t.name} title={t.count != null ? `${t.count} units${t.breakpoints?.length ? ` · tiers ${t.breakpoints.join("/")}` : ""}` : undefined}>
                     {t.icon && <img src={t.icon} alt="" />}
                     <span>{t.name}</span>
-                    {t.breakpoints?.length > 0 && <span className="g-trait-bp">{t.breakpoints.join("/")}</span>}
+                    {/* Comps: the threshold actually hit. Other guides: the trait's tiers. */}
+                    {t.tier != null
+                      ? <span className="g-trait-bp">{t.count}/{t.tier}</span>
+                      : (t.breakpoints?.length > 0 && <span className="g-trait-bp">{t.breakpoints.join("/")}</span>)}
                   </div>
                 ))}
               </div>

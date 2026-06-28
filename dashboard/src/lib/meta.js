@@ -161,6 +161,38 @@ function buildCompBoard(units, carryId, ctx) {
   return { rows: 4, cols: COLS, placed: [...place(back, BACK_ROW), ...place(front, FRONT_ROW)] };
 }
 
+// The board for a champion (e.g. behind a champion augment): reuse the champion's
+// named comp if it has one, else assemble it + its synergistic teammates.
+function teamForChampion(champ, ctx) {
+  const comp = ctx.compById[champ.id];
+  if (comp) return comp.units.map((id) => ctx.champById[id]).filter(Boolean);
+  const seen = new Set([champ.id]);
+  const pool = [];
+  (champ.traits || []).forEach((t) => (ctx.champsByTrait[t] || []).forEach((c) => {
+    if (!seen.has(c.id)) { seen.add(c.id); pool.push(c); }
+  }));
+  pool.sort((a, b) => b.cost - a.cost || a.id.localeCompare(b.id));
+  return [champ, ...pool].slice(0, 8);
+}
+
+// Active traits across a unit set: only those reaching their lowest breakpoint,
+// tagged with the highest threshold actually hit.
+function activeTraits(units, ctx) {
+  const count = {};
+  units.forEach((c) => (c.traits || []).forEach((t) => (count[t] = (count[t] || 0) + 1)));
+  return Object.entries(count)
+    .map(([name, n]) => {
+      const meta = ctx.traitByName[name] || { name, icon: "", breakpoints: [] };
+      const bps = (meta.breakpoints || []).slice().sort((a, b) => a - b);
+      const reached = bps.filter((b) => n >= b);
+      return { name, icon: meta.icon, count: n, breakpoints: bps,
+               tier: reached.length ? reached[reached.length - 1] : null, active: reached.length > 0 };
+    })
+    .filter((t) => t.active)
+    .sort((a, b) => b.tier - a.tier || b.count - a.count)
+    .slice(0, 10);
+}
+
 // Build the detail-guide payload for any entity type.
 export function buildGuide(type, row, ctx) {
   if (type === "composition") {
@@ -171,13 +203,9 @@ export function buildGuide(type, row, ctx) {
     const carry = carryId ? ctx.champById[carryId] : null;
     const champs = units.map((c) => champCard(c, c.id === carryId));
     const recItems = bestItemsForChamps(carry ? [carry.id] : units.filter((c) => c.cost >= 5).map((c) => c.id), ctx);
-    // Traits present in this unit combination, most-represented first.
-    const traitCount = {};
-    units.forEach((c) => (c.traits || []).forEach((t) => (traitCount[t] = (traitCount[t] || 0) + 1)));
-    const traits = Object.keys(traitCount)
-      .sort((a, b) => traitCount[b] - traitCount[a])
-      .slice(0, 6)
-      .map((name) => ctx.traitByName[name] || { name, icon: "", breakpoints: [] });
+    // Active traits only: a trait counts as "hit" when the comp's unit count of it
+    // reaches at least its lowest breakpoint, tagged with the threshold reached.
+    const traits = activeTraits(units, ctx);
     const carryName = carry ? prettyName(carry.id) : (comp?.name || "your 5-cost carries");
     const itemNames = recItems.slice(0, 3).map((i) => i.name).join(", ");
     const compName = comp?.name || prettyName(compId);
@@ -208,13 +236,19 @@ export function buildGuide(type, row, ctx) {
     const champ = row._champ || augmentChampion(row.entity_id, ctx.champByShort);
     const name = row._augName || ctx.augMetaById[row.entity_id]?.name || prettyName(row.entity_id);
     if (champ) {
-      const traits = (champ.traits || []).map((n) => ctx.traitByName[n] || { name: n, icon: "", breakpoints: [] });
+      // Show the champion augment's full board: its champion as the carry, paired
+      // with the appropriate teammates (tanks front, carries back, items on carry).
+      const units = teamForChampion(champ, ctx);
+      const board = buildCompBoard(units, champ.id, ctx);
+      const champs = units.map((c) => champCard(c, c.id === champ.id));
+      const traits = activeTraits(units, ctx);
       const recItems = bestItemsForChamps([champ.id], ctx);
       const itemNames = recItems.slice(0, 3).map((i) => i.name).join(", ");
       const cname = prettyName(champ.id);
       return {
-        title: name, subtitle: `${cname} champion augment`, traits, champs: [champCard(champ, true)], recItems,
-        howTo: `${name} is ${cname}'s champion augment. Commit to ${cname} as your main carry${traits.length ? ` (${traits.map((t) => t.name).join(", ")})` : ""}, then itemize ${itemNames || "its core items"}. Strongest in ${row.tiers?.join(", ") || "all"} lobbies.`,
+        title: name, subtitle: `${cname} champion augment · ${units.length}-unit board`,
+        traits, champs, recItems, board,
+        howTo: `${name} is ${cname}'s champion augment. Commit to ${cname} as your main carry, pair the units above (tanks front, carries back), and itemize ${itemNames || "its core items"} onto ${cname}. Strongest in ${row.tiers?.join(", ") || "all"} lobbies.`,
       };
     }
     const tierWord = row.augment_tier ? `${row.augment_tier} augment` : "Augment";
