@@ -166,8 +166,11 @@ def patch_history(entity_id: str = ""):
 def roster():
     """Full champion roster for the current set (for the team builder)."""
     icons = getattr(td, "CHAMPION_ICONS", {})
+    roles = getattr(td, "CHAMPION_ROLE", {})
+    ranges = getattr(td, "CHAMPION_RANGE", {})
     champions = [
-        {"id": cid, "cost": cost, "traits": list(traits), "icon": icons.get(cid, "")}
+        {"id": cid, "cost": cost, "traits": list(traits), "icon": icons.get(cid, ""),
+         "role": roles.get(cid, ""), "range": ranges.get(cid, 1)}
         for (cid, cost, traits) in td.CHAMPIONS
     ]
     champions.sort(key=lambda c: (c["cost"], c["id"]))

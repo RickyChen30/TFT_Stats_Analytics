@@ -123,6 +123,44 @@ function champCard(c, carry = false) {
   return { id: c.id, name: prettyName(c.id), icon: c.icon, cost: c.cost, carry };
 }
 
+// Frontline (melee tanks/fighters) vs backline (ranged carries/casters), from the
+// unit's Riot role + attack range. Melee (range 1) → front, ranged (2+) → back.
+function unitLine(c) {
+  const r = c.role || "";
+  if (/Carry|Caster|Reaper/.test(r)) return "back";
+  if (/Tank|Fighter/.test(r)) return "front";
+  return (c.range || 1) >= 2 ? "back" : "front";
+}
+
+// Auto-position a comp's units on a 4×7 board: backline carries on the back row,
+// frontline tanks on the front row, centered. Recommended items go on the main
+// carry and the main tank (best items per unit from the champion×item heatmap).
+function buildCompBoard(units, carryId, ctx) {
+  const COLS = 7, BACK_ROW = 0, FRONT_ROW = 2;
+  const back = [], front = [];
+  units.forEach((c) => (unitLine(c) === "back" ? back : front).push(c));
+  back.sort((a, b) => b.cost - a.cost);
+  front.sort((a, b) => b.cost - a.cost);
+
+  // Main carry (falls back to the priciest backliner for Fast 9) and main tank.
+  const carry = carryId || (back[0] && back[0].id) || (units[0] && units[0].id);
+  const tank = [...front].sort((a, b) =>
+    (/Tank/.test(b.role) - /Tank/.test(a.role)) || b.cost - a.cost)[0];
+  const carryItems = bestItemsForChamps([carry].filter(Boolean), ctx).slice(0, 3);
+  const tankItems = tank ? bestItemsForChamps([tank.id], ctx).slice(0, 3) : [];
+  const itemsFor = (id) =>
+    id === carry ? carryItems : (tank && id === tank.id ? tankItems : []);
+
+  const place = (arr, row) => {
+    const start = Math.max(0, Math.floor((COLS - arr.length) / 2));
+    return arr.slice(0, COLS).map((c, i) => ({
+      id: c.id, name: prettyName(c.id), icon: c.icon, cost: c.cost,
+      carry: c.id === carry, row, col: start + i, items: itemsFor(c.id),
+    }));
+  };
+  return { rows: 4, cols: COLS, placed: [...place(back, BACK_ROW), ...place(front, FRONT_ROW)] };
+}
+
 // Build the detail-guide payload for any entity type.
 export function buildGuide(type, row, ctx) {
   if (type === "composition") {
@@ -147,7 +185,8 @@ export function buildGuide(type, row, ctx) {
       title: compName,
       subtitle: `${units.length} units · ${row.sample_size.toLocaleString()} games`,
       traits, champs, recItems,
-      howTo: `${compName} is built around ${carryName}. Field the unit combination above, itemize ${itemNames || "core items"} onto ${carryName}, and prioritize hitting the carry. Strongest in ${row.tiers?.join(", ") || "all"} lobbies.`,
+      board: buildCompBoard(units, carryId, ctx),
+      howTo: `${compName} is built around ${carryName}. Field the unit combination above with tanks in front and carries in the back, itemize ${itemNames || "core items"} onto ${carryName}, and prioritize hitting the carry. Strongest in ${row.tiers?.join(", ") || "all"} lobbies.`,
     };
   }
 

@@ -62,6 +62,44 @@ function TierBars({ series }) {
   );
 }
 
+// Static positioned board for a comp guide: tanks front, carries back, with the
+// recommended items shown on the main carry / tank hexes.
+function CompBoard({ board }) {
+  if (!board?.placed?.length) return null;
+  const { rows, cols, placed } = board;
+  const at = (r, c) => placed.find((p) => p.row === r && p.col === c);
+  return (
+    <div className="g-board">
+      <span className="g-board-line back">backline · carries</span>
+      <div className="g-board-grid">
+        {Array.from({ length: rows }).map((_, r) => (
+          <div className={`g-board-row ${r % 2 ? "offset" : ""}`} key={r}>
+            {Array.from({ length: cols }).map((_, c) => {
+              const u = at(r, c);
+              return (
+                <div className={`g-board-hex ${u ? "filled" : ""} ${u?.carry ? "carry" : ""}`} key={c}
+                  style={u ? { "--cost": COST_COLORS[u.cost] || "#9aa3b2" } : undefined} title={u?.name || ""}>
+                  {u && (u.icon ? <img className="g-board-img" src={u.icon} alt={u.name} draggable={false} />
+                    : <span className="g-board-ph">{u.name?.slice(0, 2)}</span>)}
+                  {u?.carry && <span className="g-board-star">★</span>}
+                  {u?.items?.length > 0 && (
+                    <div className="g-board-items">
+                      {u.items.map((it, k) => (it.icon
+                        ? <img key={k} src={it.icon} alt={it.name} title={it.name} />
+                        : null))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+      <span className="g-board-line front">frontline · tanks</span>
+    </div>
+  );
+}
+
 function Hex({ icon, name, cost, carry }) {
   return (
     <div className={`g-hex ${carry ? "carry" : ""}`} style={{ "--cost": COST_COLORS[cost] || "#9aa3b2" }} title={name}>
@@ -121,8 +159,16 @@ export default function GuideModal({ type, row, guide, onClose }) {
             </div>
           )}
 
-          {/* Core units */}
-          {guide.champs?.length > 0 && (
+          {/* Suggested board (comps): tanks front, carries back, items on key units */}
+          {guide.board?.placed?.length > 0 && (
+            <div className="guide-section">
+              <div className="guide-section-head">Suggested board</div>
+              <CompBoard board={guide.board} />
+            </div>
+          )}
+
+          {/* Core units (champions / items / augments — comps show the board above) */}
+          {guide.champs?.length > 0 && !guide.board && (
             <div className="guide-section">
               <div className="guide-section-head">{type === "item" ? "Best on" : "Core units"}</div>
               <div className="guide-units">
