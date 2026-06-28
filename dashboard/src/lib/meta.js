@@ -153,9 +153,12 @@ function buildCompBoard(units, carryId, ctx) {
   const itemsFor = (id) =>
     id === carry ? carryItems : (tank && id === tank.id ? tankItems : []);
 
+  // Star level: the carry is starred up — a low-cost reroll carry to 3★, a
+  // 4/5-cost main carry to 2★. Everyone else stays 1★ (no star shown).
+  const starOf = (c) => (c.id === carry ? (c.cost <= 3 ? 3 : 2) : 1);
   const mkUnit = (c, row, col) => ({
     id: c.id, name: prettyName(c.id), icon: c.icon, cost: c.cost,
-    carry: c.id === carry, row, col, items: itemsFor(c.id),
+    carry: c.id === carry, star: starOf(c), row, col, items: itemsFor(c.id),
   });
   // Tanks: centered on the front row.
   const placeCentered = (arr, row) => {

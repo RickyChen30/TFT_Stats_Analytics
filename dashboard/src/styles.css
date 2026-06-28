@@ -493,9 +493,12 @@ tbody tr:hover { background: var(--panel-2); }
 }
 .g-board-hex.carry .g-board-img { filter: drop-shadow(0 0 5px var(--cost)); }
 .g-board-star {
-  position: absolute; top: -7px; left: 50%; transform: translateX(-50%);
-  color: #f0b232; font-size: 13px; text-shadow: 0 1px 2px #000; z-index: 4;
+  position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
+  font-size: 11px; line-height: 1; letter-spacing: -1px; white-space: nowrap;
+  text-shadow: 0 1px 2px #000; z-index: 4;
 }
+.g-board-star.s2 { color: #d6e0ee; }   /* 2★ — silver */
+.g-board-star.s3 { color: #ffd24a; }   /* 3★ — gold */
 .g-board-items {
   position: absolute; bottom: 1px; left: 50%; transform: translateX(-50%);
   display: flex; gap: 2px; z-index: 3;

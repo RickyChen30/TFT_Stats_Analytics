@@ -80,7 +80,7 @@ function CompBoard({ board }) {
                   style={u ? { "--cost": COST_COLORS[u.cost] || "#9aa3b2" } : undefined} title={u?.name || ""}>
                   {u && (u.icon ? <img className="g-board-img" src={u.icon} alt={u.name} draggable={false} />
                     : <span className="g-board-ph">{u.name?.slice(0, 2)}</span>)}
-                  {u?.carry && <span className="g-board-star">★</span>}
+                  {u?.star > 1 && <span className={`g-board-star s${u.star}`}>{"★".repeat(u.star)}</span>}
                   {u?.items?.length > 0 && (
                     <div className="g-board-items">
                       {u.items.map((it, k) => (it.icon
