@@ -193,6 +193,36 @@ export default function GuideModal({ type, row, guide, onClose }) {
             </div>
           )}
 
+          {/* Recommended augments (comps / champion augments) */}
+          {guide.recAugments?.length > 0 && (
+            <div className="guide-section">
+              <div className="guide-section-head">Recommended augments</div>
+              <div className="rec-augs">
+                {guide.recAugments.map((a) => (
+                  <div className={`rec-aug tier-${a.tier}`} key={a.id} title={`${a.name}${a.tier ? ` · ${a.tier}` : ""}`}>
+                    {a.icon ? <img src={a.icon} alt={a.name} /> : <span className="rec-ph">{a.name.slice(0, 2)}</span>}
+                    <span className="rec-aug-name">{a.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Components to grab (build the carry's items) */}
+          {guide.recComponents?.length > 0 && (
+            <div className="guide-section">
+              <div className="guide-section-head">Components to grab</div>
+              <div className="rec-items">
+                {guide.recComponents.map((c) => (
+                  <div className="rec-item" key={c.id} title={`${c.name}${c.count > 1 ? ` ×${c.count}` : ""}`}>
+                    {c.icon ? <img src={c.icon} alt={c.name} /> : <span className="rec-ph">{c.name.slice(0, 2)}</span>}
+                    {c.count > 1 && <span className="rec-win">×{c.count}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* How to play */}
           {guide.howTo && (
             <div className="guide-section">

@@ -171,7 +171,14 @@ function buildCompBoard(units, carryId, ctx) {
       : a.map((_, i) => Math.round((i * (COLS - 1)) / (n - 1)));
     return a.map((c, i) => mkUnit(c, row, cols[i]));
   };
-  return { rows: 4, cols: COLS, placed: [...placeCentered(front, FRONT_ROW), ...placeCorners(back, BACK_ROW)] };
+  // Up to 7 per row; a fuller board (level 9) overflows onto the adjacent inner row.
+  const placed = [
+    ...placeCentered(front.slice(0, COLS), FRONT_ROW),
+    ...placeCentered(front.slice(COLS), FRONT_ROW + 1),
+    ...placeCorners(back.slice(0, COLS), BACK_ROW),
+    ...placeCorners(back.slice(COLS), BACK_ROW - 1),
+  ];
+  return { rows: 4, cols: COLS, placed };
 }
 
 // The board for a champion (e.g. behind a champion augment): reuse the champion's
@@ -206,6 +213,39 @@ function activeTraits(units, ctx) {
     .slice(0, 10);
 }
 
+// Augments to recommend for a comp: the carry's own champion augment first, then
+// augments that reference one of the comp's active traits, filled out with strong
+// prismatic augments. (Synthetic augment data isn't comp-correlated, so these are
+// chosen by carry/trait relevance rather than per-comp win rate.)
+function recommendedAugments(carryId, traits, ctx) {
+  const all = Object.values(ctx.augMetaById || {});
+  const traitNames = traits.map((t) => t.name.toLowerCase());
+  const seen = new Set();
+  const out = [];
+  const add = (a) => { if (a && !seen.has(a.id)) { seen.add(a.id); out.push(a); } };
+  all.filter((a) => augmentChampion(a.id, ctx.champByShort)?.id === carryId).forEach(add);
+  all.filter((a) => traitNames.some((tn) => tn && a.name.toLowerCase().includes(tn))).forEach(add);
+  all.filter((a) => a.tier === "prismatic" && a.category === "standard").forEach(add);
+  return out.slice(0, 5);
+}
+
+// Components to grab for a comp: the basic components that build the carry's
+// recommended (completed) items, tallied so duplicates show a count.
+function recommendedComponents(items, ctx) {
+  const tally = {};
+  items.forEach((it) => {
+    const full = ctx.itemById[it.id];
+    (full?.recipe || []).forEach((cid) => (tally[cid] = (tally[cid] || 0) + 1));
+  });
+  return Object.entries(tally)
+    .sort((a, b) => b[1] - a[1])
+    .map(([cid, count]) => {
+      const c = ctx.itemById[cid];
+      return { id: cid, name: c?.name || prettyName(cid), icon: c?.icon, count };
+    })
+    .filter((c) => c.icon);
+}
+
 // Build the detail-guide payload for any entity type.
 export function buildGuide(type, row, ctx) {
   if (type === "composition") {
@@ -224,8 +264,10 @@ export function buildGuide(type, row, ctx) {
     const compName = comp?.name || prettyName(compId);
     return {
       title: compName,
-      subtitle: `${units.length} units · ${row.sample_size.toLocaleString()} games`,
+      subtitle: `Level ${comp?.level || units.length} · ${units.length} units · ${row.sample_size.toLocaleString()} games`,
       traits, champs, recItems,
+      recAugments: recommendedAugments(carryId, traits, ctx),
+      recComponents: recommendedComponents(recItems, ctx),
       board: buildCompBoard(units, carryId, ctx),
       howTo: `${compName} is built around ${carryName}. Field the unit combination above with tanks in front and carries in the back, itemize ${itemNames || "core items"} onto ${carryName}, and prioritize hitting the carry. Strongest in ${row.tiers?.join(", ") || "all"} lobbies.`,
     };
@@ -261,6 +303,8 @@ export function buildGuide(type, row, ctx) {
       return {
         title: name, subtitle: `${cname} champion augment · ${units.length}-unit board`,
         traits, champs, recItems, board,
+        recAugments: recommendedAugments(champ.id, traits, ctx),
+        recComponents: recommendedComponents(recItems, ctx),
         howTo: `${name} is ${cname}'s champion augment. Commit to ${cname} as your main carry, pair the units above (tanks front, carries back), and itemize ${itemNames || "its core items"} onto ${cname}. Strongest in ${row.tiers?.join(", ") || "all"} lobbies.`,
       };
     }
