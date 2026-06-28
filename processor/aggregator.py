@@ -17,15 +17,22 @@ from common.proto import pb
 
 
 def composition_label(units) -> str:
-    """Derive a composition id from a board's two dominant traits."""
-    trait_counts: Counter[str] = Counter()
-    for u in units:
-        for trait in td.CHAMPION_TRAITS.get(u.character_id, []):
-            trait_counts[trait] += 1
-    if not trait_counts:
-        return "Unknown"
-    top = [t for t, _ in trait_counts.most_common(2)]
-    return "_".join(sorted(top))
+    """Name a comp by its carry — the itemized, highest-cost unit — so the comp
+    tier list groups by the right champion combination (TFT Academy style) rather
+    than by trait pair. A board of several 5-costs with no single itemized carry
+    is the "Fast 9" comp.
+    """
+    if not units:
+        return "comp:Unknown"
+    carry = max(units, key=lambda u: (len(u.items),
+                                      td.CHAMPION_COST.get(u.character_id, 0),
+                                      u.character_id))
+    fives = sum(1 for u in units if td.CHAMPION_COST.get(u.character_id, 0) >= 5)
+    base = "Fast9" if (len(carry.items) < 2 and fives >= 3) else carry.character_id
+    # The metastore keys on entity_id (not entity_type), so a comp named after a
+    # champion would collide with that champion's entity. Prefix to keep them
+    # distinct; the dashboard strips the "comp:" prefix when resolving the comp.
+    return f"comp:{base}"
 
 
 class StatAggregator:

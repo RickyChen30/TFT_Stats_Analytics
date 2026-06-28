@@ -383,8 +383,10 @@ tbody tr:hover { background: var(--panel-2); }
   font-size: 12.5px; font-weight: 700;
 }
 .comp-card.grouped .comp-card-stats { width: 100%; }
-.comp-hexes { display: flex; gap: 5px; flex-wrap: nowrap; }
+.comp-hexes { display: flex; gap: 5px; flex-wrap: nowrap; align-items: center; }
 .comp-card.grouped .mini-hex { width: 44px; height: 39px; }
+/* The carry stands out: larger, brighter, gold-ringed. */
+.comp-card.grouped .mini-hex.carry { width: 54px; height: 48px; filter: drop-shadow(0 0 6px var(--cost)) drop-shadow(0 0 2px #f0b232); }
 
 /* Cost-colored flat-top hexagon framing a champion portrait. */
 .mini-hex {

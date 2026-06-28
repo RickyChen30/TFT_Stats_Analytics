@@ -1450,3 +1450,37 @@ BUILDER_AUGMENTS = [
     {"id": 'TFT_Augment_WorthTheWaitGold', "name": 'Worth the Wait', "icon": 'https://raw.communitydragon.org/latest/game/assets/maps/tft/icons/augments/hexcore/worththewait_ii.tft_set12.png', "tier": 'gold', "category": 'standard'},
     {"id": 'TFT_Augment_WorthTheWaitPrismatic', "name": 'Worth the Wait II', "icon": 'https://raw.communitydragon.org/latest/game/assets/maps/tft/icons/augments/hexcore/worththewait_iii.tft_set12.png', "tier": 'gold', "category": 'standard'},
 ]
+
+# --------------------------------------------------------------------------- #
+# Named comps (TFT Academy style): each is a champion *combination* anchored on
+# a carry, not a trait pair. Synthetic boards are built from these so the comp
+# tier list groups by the right unit combination. "Fast 9" is the 5-cost board.
+# --------------------------------------------------------------------------- #
+COMPS = [
+    {"id": 'TFT17_Bard', "name": 'Bard', "carry": 'TFT17_Bard', "units": ['TFT17_Bard', 'TFT17_AurelionSol', 'TFT17_Corki', 'TFT17_Rammus', 'TFT17_Fizz', 'TFT17_Viktor', 'TFT17_Gnar', 'TFT17_IvernMinion']},
+    {"id": 'TFT17_Blitzcrank', "name": 'Blitzcrank', "carry": 'TFT17_Blitzcrank', "units": ['TFT17_Blitzcrank', 'TFT17_Nami', 'TFT17_Nunu', 'TFT17_Illaoi', 'TFT17_Ornn', 'TFT17_Samira', 'TFT17_Gwen', 'TFT17_Mordekaiser']},
+    {"id": 'TFT17_Fiora', "name": 'Fiora', "carry": 'TFT17_Fiora', "units": ['TFT17_Fiora', 'TFT17_MasterYi', 'TFT17_Aurora', 'TFT17_Illaoi', 'TFT17_Urgot', 'TFT17_Akali', 'TFT17_Belveth', 'TFT17_Jinx']},
+    {"id": 'TFT17_Graves', "name": 'Graves', "carry": 'TFT17_Graves', "units": ['TFT17_Graves', 'TFT17_Aatrox', 'TFT17_Briar', 'TFT17_Caitlyn', 'TFT17_Chogath', 'TFT17_Ezreal', 'TFT17_Leona', 'TFT17_Lissandra']},
+    {"id": 'TFT17_Jhin', "name": 'Jhin', "carry": 'TFT17_Jhin', "units": ['TFT17_Jhin', 'TFT17_Karma', 'TFT17_Xayah', 'TFT17_Kaisa', 'TFT17_Samira', 'TFT17_Gnar', 'TFT17_Mordekaiser', 'TFT17_Chogath']},
+    {"id": 'TFT17_Shen', "name": 'Shen', "carry": 'TFT17_Shen', "units": ['TFT17_Shen', 'TFT17_Rammus', 'TFT17_Ornn', 'TFT17_Jax', 'TFT17_Aatrox', 'TFT17_Poppy', 'TFT17_Briar', 'TFT17_Caitlyn']},
+    {"id": 'TFT17_Sona', "name": 'Sona', "carry": 'TFT17_Sona', "units": ['TFT17_Sona', 'TFT17_Leblanc', 'TFT17_MasterYi', 'TFT17_Illaoi', 'TFT17_Viktor', 'TFT17_Gragas', 'TFT17_IvernMinion', 'TFT17_Pyke']},
+    {"id": 'TFT17_Vex', "name": 'Vex', "carry": 'TFT17_Vex', "units": ['TFT17_Vex', 'TFT17_Aatrox', 'TFT17_Briar', 'TFT17_Caitlyn', 'TFT17_Chogath', 'TFT17_Ezreal', 'TFT17_Leona', 'TFT17_Lissandra']},
+    {"id": 'TFT17_Zed', "name": 'Zed', "carry": 'TFT17_Zed', "units": ['TFT17_Zed', 'TFT17_Aatrox', 'TFT17_Briar', 'TFT17_Caitlyn', 'TFT17_Chogath', 'TFT17_Ezreal', 'TFT17_Leona', 'TFT17_Lissandra']},
+    {"id": 'TFT17_AurelionSol', "name": 'Aurelion Sol', "carry": 'TFT17_AurelionSol', "units": ['TFT17_AurelionSol', 'TFT17_Bard', 'TFT17_Galio', 'TFT17_Urgot', 'TFT17_Viktor', 'TFT17_Mordekaiser', 'TFT17_Zoe', 'TFT17_Aatrox']},
+    {"id": 'TFT17_Corki', "name": 'Corki', "carry": 'TFT17_Corki', "units": ['TFT17_Corki', 'TFT17_Bard', 'TFT17_Rammus', 'TFT17_Fizz', 'TFT17_Gnar', 'TFT17_IvernMinion', 'TFT17_Milio', 'TFT17_Caitlyn']},
+    {"id": 'TFT17_Galio', "name": 'Galio', "carry": 'TFT17_Galio', "units": ['TFT17_Galio', 'TFT17_AurelionSol', 'TFT17_Karma', 'TFT17_Aurora', 'TFT17_Urgot', 'TFT17_IvernMinion', 'TFT17_Pyke', 'TFT17_Aatrox']},
+    {"id": 'TFT17_Karma', "name": 'Karma', "carry": 'TFT17_Karma', "units": ['TFT17_Karma', 'TFT17_Jhin', 'TFT17_Galio', 'TFT17_Aurora', 'TFT17_Kaisa', 'TFT17_IvernMinion', 'TFT17_Mordekaiser', 'TFT17_Pyke']},
+    {"id": 'TFT17_Kindred', "name": 'Kindred', "carry": 'TFT17_Kindred', "units": ['TFT17_Kindred', 'TFT17_Diana', 'TFT17_Maokai', 'TFT17_Akali', 'TFT17_Belveth', 'TFT17_Jinx', 'TFT17_Aatrox', 'TFT17_Caitlyn']},
+    {"id": 'TFT17_Leblanc', "name": 'Leblanc', "carry": 'TFT17_Leblanc', "units": ['TFT17_Leblanc', 'TFT17_Sona', 'TFT17_Diana', 'TFT17_Illaoi', 'TFT17_IvernMinion', 'TFT17_Zoe', 'TFT17_Leona', 'TFT17_Lissandra']},
+    {"id": 'TFT17_MasterYi', "name": 'Master Yi', "carry": 'TFT17_MasterYi', "units": ['TFT17_MasterYi', 'TFT17_Fiora', 'TFT17_Sona', 'TFT17_Urgot', 'TFT17_Viktor', 'TFT17_Akali', 'TFT17_Belveth', 'TFT17_Gragas']},
+    {"id": 'TFT17_Morgana', "name": 'Morgana', "carry": 'TFT17_Morgana', "units": ['TFT17_Morgana', 'TFT17_Aatrox', 'TFT17_Briar', 'TFT17_Caitlyn', 'TFT17_Chogath', 'TFT17_Ezreal', 'TFT17_Leona', 'TFT17_Lissandra']},
+    {"id": 'TFT17_Nami', "name": 'Nami', "carry": 'TFT17_Nami', "units": ['TFT17_Nami', 'TFT17_Blitzcrank', 'TFT17_Lulu', 'TFT17_Ornn', 'TFT17_Samira', 'TFT17_Gwen', 'TFT17_Pantheon', 'TFT17_Lissandra']},
+    {"id": 'TFT17_Nunu', "name": 'Nunu', "carry": 'TFT17_Nunu', "units": ['TFT17_Nunu', 'TFT17_Blitzcrank', 'TFT17_Xayah', 'TFT17_Illaoi', 'TFT17_Lulu', 'TFT17_Jax', 'TFT17_Mordekaiser', 'TFT17_Leona']},
+    {"id": 'TFT17_Rammus', "name": 'Rammus', "carry": 'TFT17_Rammus', "units": ['TFT17_Rammus', 'TFT17_Bard', 'TFT17_Shen', 'TFT17_Corki', 'TFT17_Fizz', 'TFT17_Ornn', 'TFT17_Gnar', 'TFT17_IvernMinion']},
+    {"id": 'TFT17_Riven', "name": 'Riven', "carry": 'TFT17_Riven', "units": ['TFT17_Riven', 'TFT17_Fizz', 'TFT17_Kaisa', 'TFT17_Gwen', 'TFT17_Milio', 'TFT17_Pantheon', 'TFT17_Briar', 'TFT17_Ezreal']},
+    {"id": 'TFT17_TahmKench', "name": 'Tahm Kench', "carry": 'TFT17_TahmKench', "units": ['TFT17_TahmKench', 'TFT17_Maokai', 'TFT17_Urgot', 'TFT17_Gragas', 'TFT17_Pantheon', 'TFT17_Chogath', 'TFT17_RekSai', 'TFT17_Aatrox']},
+    {"id": 'TFT17_Xayah', "name": 'Xayah', "carry": 'TFT17_Xayah', "units": ['TFT17_Xayah', 'TFT17_Jhin', 'TFT17_Nunu', 'TFT17_Lulu', 'TFT17_Samira', 'TFT17_Gnar', 'TFT17_Jax', 'TFT17_Ezreal']},
+    {"id": 'Fast9', "name": 'Fast 9', "carry": None, "units": ['TFT17_Bard', 'TFT17_Blitzcrank', 'TFT17_Fiora', 'TFT17_Graves', 'TFT17_Jhin', 'TFT17_Shen', 'TFT17_Sona', 'TFT17_Vex']},
+]
+
+COMP_BY_ID = {c["id"]: c for c in COMPS}

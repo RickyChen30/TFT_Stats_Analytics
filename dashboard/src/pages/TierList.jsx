@@ -3,7 +3,7 @@ import { api } from "../api.js";
 import { useFetch } from "../hooks.js";
 import Filters from "../components/Filters.jsx";
 import GuideModal from "../components/GuideModal.jsx";
-import { TIERS, COST_COLORS, prettyName, metaScore, rankIntoTiers, guideContext, buildGuide, augmentChampion, condenseCompositions } from "../lib/meta.js";
+import { TIERS, COST_COLORS, prettyName, metaScore, rankIntoTiers, guideContext, buildGuide, augmentChampion } from "../lib/meta.js";
 
 const TYPES = [
   { id: "composition", label: "Compositions" },
@@ -11,20 +11,16 @@ const TYPES = [
   { id: "item", label: "Items" },
 ];
 
-// Split a composition id ("Mecha_Space Groove") into its two trait names.
-const compTraits = (id) => String(id).split("_").filter(Boolean);
-
 export default function TierList() {
   const [filters, setFilters] = useState({ tier: "", region: "", patch: "" });
   const [type, setType] = useState("composition");
-  const [grouped, setGrouped] = useState(true); // condense comps into trait archetypes
   const [selected, setSelected] = useState(null);
 
   const loader = () =>
     api[type === "composition" ? "compositions" : type === "champion" ? "champions" : "items"]({ ...filters, limit: 60 });
   const { data, loading, error } = useFetch(loader, [type, filters.tier, filters.region, filters.patch], 60000);
 
-  // Roster (champion/trait/item metadata) and the champion×item heatmap power the guides.
+  // Roster (champion/trait/item/comp metadata) and the champion×item heatmap power the guides.
   const { data: roster } = useFetch(() => api.roster(), []);
   const { data: heatmap } = useFetch(() => api.heatmap({}), []);
   // Augments (for the special "X" tier of champion / hero augments).
@@ -52,60 +48,32 @@ export default function TierList() {
     return out;
   }, [augData, ctx]);
 
-  const { byTier } = useMemo(() => {
-    let rows = Array.isArray(data) ? [...data] : [];
-    if (type === "composition" && grouped) rows = condenseCompositions(rows);
-    return rankIntoTiers(rows);
-  }, [data, type, grouped]);
+  const { byTier } = useMemo(() => rankIntoTiers(Array.isArray(data) ? [...data] : []), [data]);
   const hasRows = Array.isArray(data) && data.length > 0;
 
-  // Signature champions of a comp: champions sharing its traits, priciest first.
-  const compChamps = (id) => {
-    const seen = new Set();
-    const out = [];
-    compTraits(id).forEach((t) => (ctx.champsByTrait[t] || []).forEach((c) => { if (!seen.has(c.id)) { seen.add(c.id); out.push(c); } }));
-    out.sort((a, b) => b.cost - a.cost || a.id.localeCompare(b.id));
-    return out;
+  // The champion combination behind a comp: its carry first, then the rest of the
+  // board, looked up from the comp definition (named by carry, TFT Academy style).
+  const compUnits = (row) => {
+    const id = String(row.entity_id).replace(/^comp:/, "");
+    const comp = ctx.compById[id];
+    const units = (comp?.units || []).map((cid) => ctx.champById[cid]).filter(Boolean);
+    return { name: comp?.name || prettyName(id), carry: comp?.carry, units };
   };
 
   const renderCard = (row) => {
-    if (type === "composition" && row._archetype) {
-      const t = ctx.traitByName[row._trait];
-      const champs = (ctx.champsByTrait[row._trait] || []).slice()
-        .sort((a, b) => b.cost - a.cost || a.id.localeCompare(b.id)).slice(0, 7);
-      return (
-        <div className="comp-card grouped arch" key={row.entity_id} onClick={() => setSelected({ row, type })}>
-          <div className="comp-hexes">
-            {champs.map((c) => (
-              <div className="mini-hex" key={c.id} style={{ "--cost": COST_COLORS[c.cost] || "#9aa3b2" }} title={prettyName(c.id)}>
-                {c.icon ? <img src={c.icon} alt="" draggable={false} /> : <span>{prettyName(c.id).slice(0, 2)}</span>}
-              </div>
-            ))}
-          </div>
-          <div className="comp-card-title arch-title">
-            {t?.icon && <img className="arch-trait-icon" src={t.icon} alt="" />}
-            {row._trait}
-          </div>
-          <div className="comp-card-stats">
-            <span className="good">{(row.win_rate * 100).toFixed(1)}%</span>
-            <span className="muted">{row.avg_placement.toFixed(2)}</span>
-            <span className="muted">· {row._variants.length} comps</span>
-          </div>
-        </div>
-      );
-    }
     if (type === "composition") {
-      const champs = compChamps(row.entity_id).slice(0, 7);
+      const { name, carry, units } = compUnits(row);
       return (
         <div className="comp-card grouped" key={row.entity_id} onClick={() => setSelected({ row, type })}>
           <div className="comp-hexes">
-            {champs.map((c) => (
-              <div className="mini-hex" key={c.id} style={{ "--cost": COST_COLORS[c.cost] || "#9aa3b2" }} title={prettyName(c.id)}>
+            {units.map((c) => (
+              <div className={`mini-hex ${c.id === carry ? "carry" : ""}`} key={c.id}
+                style={{ "--cost": COST_COLORS[c.cost] || "#9aa3b2" }} title={prettyName(c.id)}>
                 {c.icon ? <img src={c.icon} alt="" draggable={false} /> : <span>{prettyName(c.id).slice(0, 2)}</span>}
               </div>
             ))}
           </div>
-          <div className="comp-card-title">{compTraits(row.entity_id).join(" + ")}</div>
+          <div className="comp-card-title">{name}</div>
           <div className="comp-card-stats">
             <span className="good">{(row.win_rate * 100).toFixed(1)}%</span>
             <span className="muted">{row.avg_placement.toFixed(2)} avg</span>
@@ -148,7 +116,7 @@ export default function TierList() {
   return (
     <div>
       <h1 className="page-title">Meta Tier List</h1>
-      <p className="page-sub">Ranked S→D by top-4 rate &amp; average placement · special X tier for champion augments · click any card for a full guide · updates every 60s</p>
+      <p className="page-sub">Comps grouped by their carry &amp; unit combination · ranked S→D by top-4 rate &amp; average placement · special X tier for champion augments · click any card for a full guide</p>
 
       <div className="filters">
         <label>
@@ -157,15 +125,6 @@ export default function TierList() {
             {TYPES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
           </select>
         </label>
-        {type === "composition" && (
-          <label>
-            Grouping
-            <select value={grouped ? "grouped" : "all"} onChange={(e) => { setGrouped(e.target.value === "grouped"); setSelected(null); }}>
-              <option value="grouped">Archetypes</option>
-              <option value="all">All comps</option>
-            </select>
-          </label>
-        )}
       </div>
       <Filters value={filters} onChange={setFilters} />
 

@@ -178,6 +178,7 @@ def roster():
         "items": getattr(td, "BUILDER_ITEMS", []),
         "traits": getattr(td, "TRAITS_DATA", [{"name": t, "breakpoints": [], "icon": ""} for t in td.TRAITS]),
         "augments": getattr(td, "BUILDER_AUGMENTS", []),
+        "comps": getattr(td, "COMPS", []),
     }
 
 

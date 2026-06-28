@@ -50,13 +50,14 @@ export function guideContext(roster, heatmap) {
   const traitByName = Object.fromEntries((roster?.traits || []).map((t) => [t.name, t]));
   const itemById = Object.fromEntries((roster?.items || []).map((i) => [i.id, i]));
   const augMetaById = Object.fromEntries((roster?.augments || []).map((a) => [a.id, a]));
+  const compById = Object.fromEntries((roster?.comps || []).map((c) => [c.id, c]));
   const champByShort = {};
   const champsByTrait = {};
   (roster?.champions || []).forEach((c) => {
     champByShort[c.id.replace(/^TFT\d*_/, "")] = c;
     (c.traits || []).forEach((t) => (champsByTrait[t] || (champsByTrait[t] = [])).push(c));
   });
-  return { champById, traitByName, itemById, augMetaById, champByShort, champsByTrait, cells: heatmap?.cells || [] };
+  return { champById, traitByName, itemById, augMetaById, compById, champByShort, champsByTrait, cells: heatmap?.cells || [] };
 }
 
 // The champion an augment id belongs to, or null. Champion-augment ids look like
@@ -124,44 +125,29 @@ function champCard(c, carry = false) {
 
 // Build the detail-guide payload for any entity type.
 export function buildGuide(type, row, ctx) {
-  if (type === "composition" && row._archetype) {
-    const t = ctx.traitByName[row._trait] || { name: row._trait, icon: "", breakpoints: [] };
-    const pool = (ctx.champsByTrait[row._trait] || []).slice().sort((a, b) => b.cost - a.cost || a.id.localeCompare(b.id));
-    const carrySet = new Set(pool.filter((c) => c.cost >= 4).slice(0, 2).map((c) => c.id));
-    const units = pool.slice(0, 10).map((c) => champCard(c, carrySet.has(c.id)));
-    const recItems = bestItemsForChamps([...carrySet], ctx);
-    const carryNames = units.filter((u) => u.carry).map((u) => u.name).join(" & ") || units[0]?.name || "your strongest unit";
-    const itemNames = recItems.slice(0, 3).map((i) => i.name).join(", ");
-    const variants = row._variants.map((v) => ({
-      id: v.entity_id, name: compTraits(v.entity_id).join(" + "),
-      win: v.win_rate, place: v.avg_placement, n: v.sample_size,
-    }));
-    return {
-      title: t.name, subtitle: `${row._variants.length} comps · ${row.sample_size.toLocaleString()} games`,
-      traits: [t], champs: units, recItems, variants,
-      howTo: `The ${t.name} archetype centers on ${carryNames}. Flex your second trait by lobby (see variants below), hit your ${t.name}${t.breakpoints?.length ? ` (${t.breakpoints.join("/")})` : ""} breakpoints, and itemize ${itemNames || "core items"} onto the carry. Strongest in ${row.tiers?.join(", ") || "all"} lobbies.`,
-    };
-  }
-
   if (type === "composition") {
-    const ts = compTraits(row.entity_id).map((name) => ctx.traitByName[name] || { name, icon: "", breakpoints: [] });
-    const seen = new Set();
-    const champs = [];
-    compTraits(row.entity_id).forEach((t) => (ctx.champsByTrait[t] || []).forEach((c) => {
-      if (!seen.has(c.id)) { seen.add(c.id); champs.push(c); }
-    }));
-    champs.sort((a, b) => b.cost - a.cost || a.id.localeCompare(b.id));
-    const carrySet = new Set(champs.filter((c) => c.cost >= 4).slice(0, 2).map((c) => c.id));
-    const units = champs.slice(0, 8).map((c) => champCard(c, carrySet.has(c.id)));
-    const recItems = bestItemsForChamps([...carrySet], ctx);
-    const carryNames = units.filter((u) => u.carry).map((u) => u.name).join(" & ") || units[0]?.name || "your strongest unit";
-    const traitNames = ts.map((t) => `${t.name}${t.breakpoints?.length ? ` (${t.breakpoints.join("/")})` : ""}`).join(" + ");
+    const compId = String(row.entity_id).replace(/^comp:/, "");
+    const comp = ctx.compById[compId];
+    const units = (comp?.units || []).map((id) => ctx.champById[id]).filter(Boolean);
+    const carryId = comp?.carry;
+    const carry = carryId ? ctx.champById[carryId] : null;
+    const champs = units.map((c) => champCard(c, c.id === carryId));
+    const recItems = bestItemsForChamps(carry ? [carry.id] : units.filter((c) => c.cost >= 5).map((c) => c.id), ctx);
+    // Traits present in this unit combination, most-represented first.
+    const traitCount = {};
+    units.forEach((c) => (c.traits || []).forEach((t) => (traitCount[t] = (traitCount[t] || 0) + 1)));
+    const traits = Object.keys(traitCount)
+      .sort((a, b) => traitCount[b] - traitCount[a])
+      .slice(0, 6)
+      .map((name) => ctx.traitByName[name] || { name, icon: "", breakpoints: [] });
+    const carryName = carry ? prettyName(carry.id) : (comp?.name || "your 5-cost carries");
     const itemNames = recItems.slice(0, 3).map((i) => i.name).join(", ");
+    const compName = comp?.name || prettyName(compId);
     return {
-      title: ts.map((t) => t.name).join(" + "),
-      subtitle: `${units.length} core units · ${row.sample_size.toLocaleString()} games`,
-      traits: ts, champs: units, recItems,
-      howTo: `Build around ${carryNames} as your main carry. Hit your ${traitNames} breakpoints, then itemize ${itemNames || "core items"} onto the carry. This composition performs best in ${row.tiers?.join(", ") || "all"} lobbies.`,
+      title: compName,
+      subtitle: `${units.length} units · ${row.sample_size.toLocaleString()} games`,
+      traits, champs, recItems,
+      howTo: `${compName} is built around ${carryName}. Field the unit combination above, itemize ${itemNames || "core items"} onto ${carryName}, and prioritize hitting the carry. Strongest in ${row.tiers?.join(", ") || "all"} lobbies.`,
     };
   }
 

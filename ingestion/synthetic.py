@@ -11,6 +11,7 @@ low tiers (creating a rank gap).
 """
 from __future__ import annotations
 
+import hashlib
 import random
 import time
 import uuid
@@ -26,9 +27,17 @@ _HIGH_TIERS = {"DIAMOND", "MASTER", "GRANDMASTER", "CHALLENGER"}
 _TRAP_AUGMENT = td.TRAP_AUGMENT
 
 
-def _placement_bias(units: list[str], augments: list[str], tier: str) -> float:
-    """Return a [0,1) strength score; lower => better (1st place) placement."""
-    score = 0.0
+def _comp_strength(comp_id: str) -> float:
+    """Stable per-comp placement offset (lower => stronger) so the comp tier
+    list has a real S→D spread instead of every comp performing the same."""
+    h = int(hashlib.md5(comp_id.encode()).hexdigest()[:8], 16)
+    return (h % 100) / 100.0 * 0.32 - 0.16  # deterministic in [-0.16, +0.16]
+
+
+def _placement_bias(units: list[str], augments: list[str], tier: str,
+                    comp_id: str = "") -> float:
+    """Return a strength score; lower => better (1st place) placement."""
+    score = _comp_strength(comp_id) if comp_id else 0.0
     for u in units:
         cost = td.CHAMPION_COST.get(u, 2)
         score -= cost * 0.04  # expensive boards trend stronger
@@ -39,15 +48,24 @@ def _placement_bias(units: list[str], augments: list[str], tier: str) -> float:
     return score
 
 
-def _random_board(rng: random.Random) -> tuple[list[str], list[pb.Unit]]:
-    n = rng.randint(6, 9)
-    chosen = rng.sample(td.CHAMPION_IDS, n)
+def _comp_board(rng: random.Random) -> tuple[list[str], list[pb.Unit], str]:
+    """Build a coherent board from a named comp: the carry is itemized, the rest
+    round out the combination. The comp id is returned so the board can be scored
+    and labelled by its carry (TFT Academy style) rather than by trait pair."""
+    comp = rng.choice(td.COMPS)
+    carry = comp.get("carry")
+    unit_ids = comp["units"]
     units = []
-    for cid in chosen:
-        n_items = rng.choices([0, 1, 2, 3], weights=[40, 25, 20, 15])[0]
+    for cid in unit_ids:
+        if cid == carry:
+            n_items = rng.choice([2, 3])                       # the carry holds items
+        elif carry is None:
+            n_items = rng.choices([0, 1], weights=[60, 40])[0]  # Fast 9: no single carry
+        else:
+            n_items = rng.choices([0, 1], weights=[75, 25])[0]
         items = rng.sample(td.ITEMS, n_items) if n_items else []
         units.append(pb.Unit(character_id=cid, tier=rng.randint(1, 3), items=items))
-    return chosen, units
+    return unit_ids, units, comp["id"]
 
 
 def generate_match(region: str, tier: str, patch: str, node_id: str,
@@ -58,9 +76,9 @@ def generate_match(region: str, tier: str, patch: str, node_id: str,
     # Build 8 players, score them, then rank into placements 1..8.
     scored = []
     for _ in range(8):
-        chosen, units = _random_board(rng)
+        chosen, units, comp_id = _comp_board(rng)
         augments = rng.sample(td.AUGMENTS, rng.randint(2, 3))
-        strength = _placement_bias(chosen, augments, tier) + rng.gauss(0, 0.12)
+        strength = _placement_bias(chosen, augments, tier, comp_id) + rng.gauss(0, 0.12)
         scored.append((strength, units, augments))
 
     scored.sort(key=lambda t: t[0])  # strongest (lowest score) first
